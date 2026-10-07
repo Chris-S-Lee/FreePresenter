@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("FreePresenter.App")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3aa7d7988392dcb401caa2bd7475c3c905ad6348")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c26f92096a35b5378fa98c8d80aa7c6acfc12328")]
 [assembly: System.Reflection.AssemblyProductAttribute("FreePresenter.App")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FreePresenter.App")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

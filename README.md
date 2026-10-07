@@ -7,3 +7,7 @@ README
 - 개발 환경과 실행 방법
 - 사용 라이브러리와 라이선스 정보
 - 기타 정보
+
+# 명령어
+--> dotnet build
+--> dotnet run --project src/FreePresenter.App

@@ -1,5 +1,8 @@
 using System.Windows;
 using System.Windows.Input;
+using System.Linq;
+using Forms = System.Windows.Forms;
+
 
 namespace FreePresenter.App
 {
@@ -10,13 +13,12 @@ namespace FreePresenter.App
             InitializeComponent();
         }
 
-        public void DisplaySlide(string title, string content)
+        public void DisplaySlide(string lyrics)
         {
-            TitleText.Text = title;
-            BodyText.Text = content;
+            LyricsText.Text = lyrics;
         }
 
-        private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+        private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
             if (Owner is not MainWindow mainWindow)
             {
@@ -33,6 +35,30 @@ namespace FreePresenter.App
                 mainWindow.NavigateSlides(-1);
                 e.Handled = true;
             }
+        }
+
+        public void MoveToSecondaryDisplay()
+        {
+            Forms.Screen? targetScreen =
+                Forms.Screen.AllScreens.FirstOrDefault(screen => !screen.Primary)
+                ?? Forms.Screen.PrimaryScreen;
+
+            if (targetScreen == null)
+            {
+                return;
+            }
+
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            WindowState = WindowState.Normal;
+            WindowStyle = WindowStyle.None;
+            ResizeMode = ResizeMode.NoResize;
+
+            Left = targetScreen.Bounds.Left;
+            Top = targetScreen.Bounds.Top;
+            Width = targetScreen.Bounds.Width;
+            Height = targetScreen.Bounds.Height;
+
+            WindowState = WindowState.Maximized;
         }
     }
 }

@@ -4,33 +4,31 @@
         Title="출력 화면"
         Width="1280"
         Height="720"
-        Background="Black"
+        MinWidth="800"
+        MinHeight="450"
         WindowStartupLocation="CenterScreen"
-        PreviewKeyDown="Window_PreviewKeyDown"
->
+        PreviewKeyDown="Window_PreviewKeyDown">
 
-    <Grid Margin="50">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+    <Grid>
+        <Grid.Background>
+            <LinearGradientBrush StartPoint="0,0"
+                                EndPoint="1,1">
+                <GradientStop Color="#172A74" Offset="0"/>
+                <GradientStop Color="#302B63" Offset="0.5"/>
+                <GradientStop Color="#6A11CB" Offset="1"/>
+            </LinearGradientBrush>
+        </Grid.Background>
 
-        <TextBlock x:Name="TitleText"
-                Grid.Row="0"
-                Foreground="#BBBBBB"
-                FontSize="24"
-                HorizontalAlignment="Center"
-                TextAlignment="Center"
-                TextWrapping="Wrap"
-                Margin="0,20,0,10"/>
-
-        <TextBlock x:Name="BodyText"
-                Grid.Row="1"
-                Foreground="White"
-                FontSize="48"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Center"
-                TextAlignment="Center"
-                TextWrapping="Wrap"/>
+        <TextBlock x:Name="LyricsText"
+                    Margin="70,45,70,40"
+                    Foreground="White"
+                    FontSize="48"
+                    FontWeight="SemiBold"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Top"
+                    TextAlignment="Center"
+                    TextWrapping="Wrap"
+                    LineStackingStrategy="BlockLineHeight"
+                    LineHeight="68"/>
     </Grid>
 </Window>

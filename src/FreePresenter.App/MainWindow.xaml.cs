@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using WpfMessageBox = System.Windows.MessageBox;
+using WpfTextBox = System.Windows.Controls.TextBox;
 
 namespace FreePresenter.App
 {
@@ -17,64 +21,52 @@ namespace FreePresenter.App
             SlidesList.ItemsSource = _slides;
         }
 
-        private void AddSlide_Click(object sender, RoutedEventArgs e)
+        private void GenerateSlides_Click(object sender, RoutedEventArgs e)
         {
-            string title = TitleInput.Text.Trim();
+            string lyrics = LyricsInput.Text
+                .Replace("\r\n", "\n")
+                .Replace('\r', '\n')
+                .Trim();
 
-            if (string.IsNullOrWhiteSpace(title))
+            if (string.IsNullOrWhiteSpace(lyrics))
             {
-                title = $"슬라이드 {_slides.Count + 1}";
-            }
-
-            var slide = new Slide(title, ContentInput.Text);
-            _slides.Add(slide);
-
-            SlidesList.SelectedItem = slide;
-            SlidesList.ScrollIntoView(slide);
-        }
-
-        private void UpdateSlide_Click(object sender, RoutedEventArgs e)
-        {
-            if (SlidesList.SelectedItem is not Slide slide)
-            {
-                MessageBox.Show("먼저 수정할 슬라이드를 목록에서 선택하세요.");
+                WpfMessageBox.Show("먼저 가사를 입력하세요.");
                 return;
             }
 
-            string title = TitleInput.Text.Trim();
+            _slides.Clear();
 
-            if (string.IsNullOrWhiteSpace(title))
+            // 빈 줄(공백만 있는 줄 포함)을 기준으로 나눕니다.
+            string[] blocks = Regex.Split(lyrics, @"\n[ \t]*\n+");
+
+            foreach (string block in blocks)
             {
-                title = $"슬라이드 {SlidesList.SelectedIndex + 1}";
+                string slideLyrics = string.Join(
+                    Environment.NewLine,
+                    block.Split('\n')
+                        .Select(line => line.Trim())
+                        .Where(line => !string.IsNullOrWhiteSpace(line)));
+
+                if (!string.IsNullOrWhiteSpace(slideLyrics))
+                {
+                    _slides.Add(new Slide(_slides.Count + 1, slideLyrics));
+                }
             }
 
-            slide.Title = title;
-            slide.Content = ContentInput.Text;
+            SlideCountText.Text = $"슬라이드 목록 ({_slides.Count}장)";
 
-            SlidesList.Items.Refresh();
-            SlidesList.SelectedItem = slide;
-            UpdateOutput(slide);
-        }
-
-        private void DeleteSlide_Click(object sender, RoutedEventArgs e)
-        {
-            if (SlidesList.SelectedItem is not Slide slide)
+            if (_slides.Count == 0)
             {
-                MessageBox.Show("먼저 삭제할 슬라이드를 목록에서 선택하세요.");
+                WpfMessageBox.Show("슬라이드로 나눌 가사를 찾지 못했습니다.");
                 return;
             }
 
-            int index = SlidesList.SelectedIndex;
-            _slides.Remove(slide);
+            SlidesList.SelectedIndex = 0;
+            SlidesList.ScrollIntoView(SlidesList.SelectedItem);
 
-            if (_slides.Count > 0)
+            if (_outputWindow != null && _outputWindow.IsVisible)
             {
-                SlidesList.SelectedIndex = Math.Min(index, _slides.Count - 1);
-            }
-            else
-            {
-                TitleInput.Clear();
-                ContentInput.Clear();
+                _outputWindow.DisplaySlide(_slides[0].Lyrics);
             }
         }
 
@@ -82,10 +74,11 @@ namespace FreePresenter.App
             object sender,
             SelectionChangedEventArgs e)
         {
-            if (SlidesList.SelectedItem is Slide slide)
+            if (SlidesList.SelectedItem is Slide slide &&
+                _outputWindow != null &&
+                _outputWindow.IsVisible)
             {
-                TitleInput.Text = slide.Title;
-                ContentInput.Text = slide.Content;
+                _outputWindow.DisplaySlide(slide.Lyrics);
             }
         }
 
@@ -93,19 +86,20 @@ namespace FreePresenter.App
         {
             if (SlidesList.SelectedItem is not Slide slide)
             {
-                MessageBox.Show("먼저 출력할 슬라이드를 목록에서 선택하세요.");
+                WpfMessageBox.Show("먼저 가사를 입력하고 슬라이드를 만들어 주세요.");
                 return;
             }
 
             EnsureOutputWindow();
-            UpdateOutput(slide);
-            _outputWindow!.Activate();
+            _outputWindow!.DisplaySlide(slide.Lyrics);
+            _outputWindow.Activate();
         }
 
-        private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+        private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
-            // 제목이나 내용 입력 중에는 방향키로 커서를 움직일 수 있게 둡니다.
-            if (Keyboard.FocusedElement is TextBox)
+
+            // 가사 입력 중에는 방향키를 커서 이동에 사용합니다.
+            if (Keyboard.FocusedElement is WpfTextBox)
             {
                 return;
             }
@@ -130,16 +124,9 @@ namespace FreePresenter.App
             }
 
             int currentIndex = SlidesList.SelectedIndex;
-            int nextIndex;
-
-            if (currentIndex < 0)
-            {
-                nextIndex = 0;
-            }
-            else
-            {
-                nextIndex = Math.Clamp(currentIndex + direction, 0, _slides.Count - 1);
-            }
+            int nextIndex = currentIndex < 0
+                ? 0
+                : Math.Clamp(currentIndex + direction, 0, _slides.Count - 1);
 
             SlidesList.SelectedIndex = nextIndex;
             SlidesList.ScrollIntoView(SlidesList.SelectedItem);
@@ -147,45 +134,50 @@ namespace FreePresenter.App
             if (SlidesList.SelectedItem is Slide slide)
             {
                 EnsureOutputWindow();
-                UpdateOutput(slide);
+                _outputWindow!.DisplaySlide(slide.Lyrics);
             }
         }
 
         private void EnsureOutputWindow()
         {
-            if (_outputWindow == null || !_outputWindow.IsVisible)
-            {
-                _outputWindow = new OutputWindow
-                {
-                    Owner = this
-                };
-
-                _outputWindow.Show();
-            }
-        }
-
-        private void UpdateOutput(Slide slide)
-        {
             if (_outputWindow != null && _outputWindow.IsVisible)
             {
-                _outputWindow.DisplaySlide(slide.Title, slide.Content);
+                return;
             }
+
+            _outputWindow = new OutputWindow
+            {
+                Owner = this
+            };
+
+            _outputWindow.Closed += (_, _) => _outputWindow = null;
+            _outputWindow.MoveToSecondaryDisplay();
+            _outputWindow.Show();
         }
 
         private sealed class Slide
         {
-            public string Title { get; set; }
-            public string Content { get; set; }
+            public int Number { get; }
+            public string Lyrics { get; }
 
-            public Slide(string title, string content)
+            public Slide(int number, string lyrics)
             {
-                Title = title;
-                Content = content;
+                Number = number;
+                Lyrics = lyrics;
             }
 
             public override string ToString()
             {
-                return Title;
+                string firstLine = Lyrics
+                    .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                    .FirstOrDefault() ?? "";
+
+                if (firstLine.Length > 28)
+                {
+                    firstLine = firstLine[..28] + "…";
+                }
+
+                return $"{Number:00}  {firstLine}";
             }
         }
     }
