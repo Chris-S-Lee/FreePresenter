@@ -5,7 +5,9 @@
         Width="1280"
         Height="720"
         Background="Black"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        PreviewKeyDown="Window_PreviewKeyDown"
+>
 
     <Grid Margin="50">
         <Grid.RowDefinitions>

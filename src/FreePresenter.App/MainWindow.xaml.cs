@@ -1,6 +1,8 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace FreePresenter.App
 {
@@ -49,9 +51,9 @@ namespace FreePresenter.App
             slide.Title = title;
             slide.Content = ContentInput.Text;
 
-            // 제목이 목록에 바로 반영되도록 새로 고칩니다.
             SlidesList.Items.Refresh();
             SlidesList.SelectedItem = slide;
+            UpdateOutput(slide);
         }
 
         private void DeleteSlide_Click(object sender, RoutedEventArgs e)
@@ -95,14 +97,79 @@ namespace FreePresenter.App
                 return;
             }
 
-            if (_outputWindow == null || !_outputWindow.IsVisible)
+            EnsureOutputWindow();
+            UpdateOutput(slide);
+            _outputWindow!.Activate();
+        }
+
+        private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            // 제목이나 내용 입력 중에는 방향키로 커서를 움직일 수 있게 둡니다.
+            if (Keyboard.FocusedElement is TextBox)
             {
-                _outputWindow = new OutputWindow();
-                _outputWindow.Show();
+                return;
             }
 
-            _outputWindow.DisplaySlide(slide.Title, slide.Content);
-            _outputWindow.Activate();
+            if (e.Key == Key.Right)
+            {
+                NavigateSlides(1);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Left)
+            {
+                NavigateSlides(-1);
+                e.Handled = true;
+            }
+        }
+
+        public void NavigateSlides(int direction)
+        {
+            if (_slides.Count == 0)
+            {
+                return;
+            }
+
+            int currentIndex = SlidesList.SelectedIndex;
+            int nextIndex;
+
+            if (currentIndex < 0)
+            {
+                nextIndex = 0;
+            }
+            else
+            {
+                nextIndex = Math.Clamp(currentIndex + direction, 0, _slides.Count - 1);
+            }
+
+            SlidesList.SelectedIndex = nextIndex;
+            SlidesList.ScrollIntoView(SlidesList.SelectedItem);
+
+            if (SlidesList.SelectedItem is Slide slide)
+            {
+                EnsureOutputWindow();
+                UpdateOutput(slide);
+            }
+        }
+
+        private void EnsureOutputWindow()
+        {
+            if (_outputWindow == null || !_outputWindow.IsVisible)
+            {
+                _outputWindow = new OutputWindow
+                {
+                    Owner = this
+                };
+
+                _outputWindow.Show();
+            }
+        }
+
+        private void UpdateOutput(Slide slide)
+        {
+            if (_outputWindow != null && _outputWindow.IsVisible)
+            {
+                _outputWindow.DisplaySlide(slide.Title, slide.Content);
+            }
         }
 
         private sealed class Slide
